@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bloom Table Co.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --white:#ffffff; --ivory:#FBF7F1; --ink:#20281F;
+    --persimmon:#E4572E; --sage:#7C9473; --gold:#EFB13C;
+  }
+  section:nth-of-type(even){ background:rgba(255,255,255,0.45); }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Work Sans', sans-serif; color:var(--ink); line-height:1.5;}
+  h1,h2,h3{font-family:'Fraunces', serif; font-weight:500;}
+  .wrap{max-width:1080px; margin:0 auto; padding:0 24px;}
+  .btn{display:inline-block; padding:11px 22px; border-radius:100px; background:var(--persimmon); color:var(--white); text-decoration:none; font-weight:600; border:none; cursor:pointer; font-size:1rem;}
+
+  body.theme-wedding{
+    --persimmon:#B3122B; --sage:#7A0C1E; --gold:#D4AF37; background:#FFF7F0;
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cg fill='%23D4AF37' fill-opacity='0.30'%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3Cellipse cx='30' cy='18' rx='5' ry='9'/%3E%3Cellipse cx='30' cy='42' rx='5' ry='9'/%3E%3Cellipse cx='18' cy='30' rx='9' ry='5'/%3E%3Cellipse cx='42' cy='30' rx='9' ry='5'/%3E%3C/g%3E%3C/svg%3E"),
+      radial-gradient(circle at 8% 12%, rgba(212,175,55,0.25), transparent 22%),
+      radial-gradient(circle at 92% 10%, rgba(179,18,43,0.18), transparent 25%),
+      radial-gradient(circle at 50% 100%, rgba(212,175,55,0.15), transparent 30%);
+    background-repeat: repeat, no-repeat, no-repeat, no-repeat;
+    background-size: 60px 60px, auto, auto, auto;
+    background-attachment:fixed;
+  }
+  body.theme-wedding header{ border-top:6px solid var(--gold); }
+  #weddingDecor{ display:none; text-align:center; padding:14px; font-size:1.4rem; letter-spacing:12px; }
+  body.theme-wedding #weddingDecor{ display:block; }
+
+  body.theme-funeral{
+    --persimmon:#4A4A4A; --sage:#2C2C2C; --ivory:#F2F2F2; background:#EAEAEA;
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Cg fill='%237C9473' fill-opacity='0.16'%3E%3Cellipse cx='20' cy='20' rx='14' ry='6' transform='rotate(30 20 20)'/%3E%3Cellipse cx='65' cy='60' rx='16' ry='7' transform='rotate(-20 65 60)'/%3E%3C/g%3E%3C/svg%3E"),
+      radial-gradient(circle at 15% 20%, rgba(122,140,120,0.15), transparent 30%),
+      radial-gradient(circle at 85% 80%, rgba(150,150,140,0.15), transparent 35%);
+    background-repeat: repeat, no-repeat, no-repeat;
+    background-size: 90px 90px, auto, auto;
+    background-attachment:fixed;
+  }
+
+  body.theme-birthday{
+    --persimmon:#FF6FA5; --gold:#4FC3F7; background:#FFF0F6;
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='70' height='70'%3E%3Cg fill-opacity='0.45'%3E%3Ccircle cx='10' cy='12' r='3' fill='%23FF6FA5'/%3E%3Crect x='40' y='8' width='6' height='6' fill='%234FC3F7' transform='rotate(20 43 11)'/%3E%3Cpolygon points='55,40 60,50 50,50' fill='%23EFB13C'/%3E%3Ccircle cx='20' cy='55' r='2.5' fill='%234FC3F7'/%3E%3C/g%3E%3C/svg%3E"),
+      radial-gradient(circle at 10% 15%, rgba(255,111,165,0.2) 0 6px, transparent 7px),
+      radial-gradient(circle at 90% 60%, rgba(255,111,165,0.2) 0 6px, transparent 7px);
+    background-repeat: repeat, no-repeat, no-repeat;
+    background-size: 70px 70px, auto, auto;
+    background-attachment:fixed;
+  }
+
+  .menu-card{border:1.5px solid #ddd; border-radius:12px; padding:16px; cursor:pointer;}
+  .pkg-card{border-radius:16px; padding:24px; cursor:pointer;}
+
+  @keyframes popBounce{
+    0%{ transform:scale(0.5); opacity:0; }
+    50%{ transform:scale(1.2); }
+    100%{ transform:scale(1); opacity:1; }
+  }
+  @keyframes fall{
+    0%{ transform:translateY(-10vh) rotate(0deg); opacity:1; }
+    100%{ transform:translateY(110vh) rotate(360deg); opacity:0.8; }
+  }
+  #cake{ font-size:80px; animation:popBounce 0.6s ease; }
+  .fall-piece{ position:absolute; top:-10vh; font-size:24px; animation:fall 2s linear forwards; }
+
+  /* Kalash drawn with CSS (round brass pot + narrow neck), sitting on the ground */
+  #weddingIntro{ align-items:flex-end !important; padding-bottom:12vh; }
+  .kalash-wrap{ display:flex; flex-direction:column; align-items:center; transform-origin:bottom center; animation:kalashKick 0.5s ease-out 0.5s forwards; opacity:0; }
+  @keyframes kalashKick{
+    0%{ opacity:0; transform:rotate(0deg) translateY(0); }
+    15%{ opacity:1; transform:rotate(0deg) translateY(0); }
+    55%{ transform:rotate(78deg) translateY(4px); }
+    75%{ transform:rotate(68deg) translateY(4px); }
+    100%{ opacity:1; transform:rotate(72deg) translateY(4px); }
+  }
+  .kalash-neck{ width:22px; height:18px; background:linear-gradient(160deg,#E8C468,#B8860B); border-radius:5px 5px 0 0; }
+  .kalash-body{
+    width:78px; height:66px; margin-top:-2px;
+    background:linear-gradient(160deg,#F0D080,#C8952E 55%,#9c6f1e);
+    border-radius:50% 50% 46% 46% / 65% 65% 35% 35%;
+    box-shadow:inset -6px -4px 10px rgba(0,0,0,0.25);
+  }
+  /* Rice grains scatter outward along the ground, not fall from the sky */
+  .rice-piece{
+    position:absolute; bottom:12vh; left:50%;
+    width:5px; height:2.5px; background:var(--gold); border-radius:1px;
+    opacity:0;
+    transition:transform 0.7s cubic-bezier(.2,.8,.3,1), opacity 0.2s ease;
+  }
+  .rice-piece.scattered{ opacity:1; }
+
+  /* MOBILE RESPONSIVE */
+  @media (max-width:700px){
+    .hero-h1{ font-size:1.7rem !important; }
+    .grid-3{ grid-template-columns:1fr !important; }
+    section{ padding:0 !important; }
+    .sec-pad{ padding:40px 16px !important; }
+    nav.wrap{ padding:14px 16px !important; }
+    #langScreen h2, #occasionScreen h2{ font-size:1.3rem; padding:0 16px; text-align:center; }
+    .pkg-card p:first-of-type{ font-size:1.4rem !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SCREEN 1: language -->
+<div id="langScreen" style="position:fixed; inset:0; background:var(--ink); color:white; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; z-index:100;">
+  <h2 style="color:white;">Choose language / ভাষা বেছে নিন / भाषा चुनें</h2>
+  <button class="btn" onclick="chooseLang('en')">English</button>
+  <button class="btn" onclick="chooseLang('bn')">বাংলা</button>
+  <button class="btn" onclick="chooseLang('hi')">हिन्दी</button>
+</div>
+
+<!-- SCREEN 2: occasion -->
+<div id="occasionScreen" style="display:none; position:fixed; inset:0; background:var(--ink); color:white; flex-direction:column; align-items:center; justify-content:center; gap:20px; z-index:100;">
+  <h2 id="occasionHeading" style="color:white;">What are you planning?</h2>
+  <button class="btn" onclick="chooseOccasion('wedding')" id="occBtnWedding">Wedding</button>
+  <button class="btn" onclick="chooseOccasion('birthday')" id="occBtnBirthday">Birthday</button>
+  <button class="btn" onclick="chooseOccasion('funeral')" id="occBtnFuneral">Funeral</button>
+</div>
+
+<!-- BIRTHDAY INTRO -->
+<div id="birthdayIntro" style="display:none; position:fixed; inset:0; background:var(--ink); z-index:200; align-items:center; justify-content:center; flex-direction:column; overflow:hidden;">
+  <div id="cake">🎂</div>
+  <div id="fallLayerBirthday" style="position:absolute; inset:0; pointer-events:none;"></div>
+</div>
+
+<!-- WEDDING INTRO: kalash gets kicked over, rice scatters along the ground, then the doorway opens -->
+<div id="weddingIntro" style="display:none; position:fixed; inset:0; background:var(--ink); justify-content:center; flex-direction:column; overflow:hidden;">
+  <div class="kalash-wrap" id="kalash">
+    <div class="kalash-neck"></div>
+    <div class="kalash-body"></div>
+  </div>
+  <div id="fallLayerWedding" style="position:absolute; inset:0; pointer-events:none;"></div>
+</div>
+
+<!-- MAIN SITE: hidden until an occasion is picked -->
+<div id="mainSite" style="display:none;">
+
+  <header>
+    <nav class="wrap" style="display:flex; justify-content:space-between; align-items:center; padding:18px 24px; flex-wrap:wrap; gap:10px;">
+      <div style="font-family:'Fraunces',serif; font-size:1.25rem;">Bloom Table Co.</div>
+      <a href="#contact" class="btn" id="navCta">Get a quote</a>
+    </nav>
+  </header>
+  <div id="weddingDecor">✦ ✦ ✦ ✦ ✦</div>
+  <section class="wrap sec-pad" style="padding:60px 24px;">
+    <h1 id="heroHeadline" class="hero-h1" style="font-size:2.5rem;">Food that feels like the best part of your celebration.</h1>
+    <p id="heroSub" style="margin-top:16px; max-width:500px;">Seasonal menus, warm service, catering built around your day.</p>
+    <a href="#contact" class="btn" style="margin-top:24px; display:inline-block;" id="heroCta">Check your date</a>
+  </section>
+
+  <!-- Build-your-menu: occasion-specific, swapping cards -->
+  <section class="wrap sec-pad" style="padding:60px 24px;">
+    <h2 id="menuHeading">Build your menu</h2>
+
+    <h3 style="margin-top:30px;" id="startersHeading">Starters</h3>
+    <div id="starterCards" class="grid-3" style="display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:14px;"></div>
+
+    <h3 style="margin-top:30px;" id="mainsHeading">Main Course</h3>
+    <div id="mainCards" class="grid-3" style="display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:14px;"></div>
+
+    <h3 style="margin-top:30px;" id="dessertHeading">Dessert</h3>
+    <div id="dessertCards" class="grid-3" style="display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:14px;"></div>
+
+    <div style="position:sticky; bottom:16px; margin-top:30px; padding:16px 20px; background:var(--ink); color:white; border-radius:14px; font-size:1.3rem; box-shadow:0 8px 24px rgba(0,0,0,0.25); text-align:center;">
+      <span id="totalLabel">Total</span>: ₹<span id="totalPrice">0</span>
+    </div>
+  </section>
+
+  <!-- Packages -->
+  <section class="wrap sec-pad" style="padding:60px 24px;">
+    <h2 id="packagesHeading">Packages</h2>
+    <p style="margin-top:8px; opacity:0.75; font-size:0.9rem;" id="tapPkgHint">Tap a package to choose it.</p>
+    <div class="grid-3" style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px; margin-top:24px;">
+      <div id="pkg-essential" class="pkg-card" style="border:1.5px solid #ddd;" onclick="selectPackage('essential', this)">
+        <h3 id="pkgEssentialName">Essential</h3>
+        <p style="font-size:1.8rem; margin:10px 0;">₹1200<span style="font-size:0.9rem;" id="perGuest1">/guest</span></p>
+        <p id="pkgEssentialDesc">Self-serve food, one main dish</p>
+      </div>
+      <div id="pkg-signature" class="pkg-card" style="border:2px solid var(--gold);" onclick="selectPackage('signature', this)">
+        <h3 id="pkgSignatureName">Signature</h3>
+        <p style="font-size:1.8rem; margin:10px 0;">₹1800<span style="font-size:0.9rem;" id="perGuest2">/guest</span></p>
+        <p id="pkgSignatureDesc">Served at the table, two main dishes</p>
+      </div>
+      <div id="pkg-bespoke" class="pkg-card" style="border:1.5px solid #ddd;" onclick="selectPackage('bespoke', this)">
+        <h3 id="pkgBespokeName">Bespoke</h3>
+        <p style="font-size:1.8rem; margin:10px 0;" id="customLabel">Custom</p>
+        <p id="pkgBespokeDesc">Full menu made just for your event</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonial -->
+  <section class="wrap quote-section sec-pad" style="padding:60px 24px;">
+    <div style="background:var(--sage); color:var(--white); border-radius:20px; padding:40px; text-align:center;">
+      <p id="quoteText" style="font-family:'Fraunces',serif; font-size:1.4rem; max-width:500px; margin:0 auto;">
+        They read the room better than we did. Every course landed exactly when it should have.
+      </p>
+    </div>
+  </section>
+
+  <!-- Contact -->
+  <section id="contact" class="wrap sec-pad" style="padding:60px 24px; background:rgba(255,255,255,0.45);">
+    <h2 id="contactHeading">Check your date</h2>
+    <div id="contactFormWrap">
+      <form id="inquiryForm" action="https://formspree.io/f/xeaokbbl" method="POST" style="display:grid; gap:14px; max-width:400px; margin-top:20px;">
+        <input type="text" name="Name" id="namePlaceholderInput" placeholder="Your name" required maxlength="30" pattern="[A-Za-z ]+" title="Letters only, up to 30 characters" style="padding:10px;">
+        <input type="email" name="email" id="customerEmailInput" placeholder="Your email" required pattern="^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$" title="Enter a standard personal email address (e.g. name@example.com)" style="padding:10px;">
+        <input type="tel" name="Phone" id="customerPhoneInput" placeholder="10-digit phone number" required maxlength="10" pattern="[0-9]{10}" inputmode="numeric" title="Exactly 10 digits, numbers only" style="padding:10px;">
+        <input type="date" name="Event Date" id="eventDateInput" style="padding:10px;">
+        <textarea name="Message" id="eventPlaceholderInput" placeholder="Tell us about your event (max 100 words)" style="padding:10px;"></textarea>
+        <p id="wordCountHint" style="font-size:0.8rem; opacity:0.65; margin-top:-8px;">0 / 100 words</p>
+        <input type="hidden" name="_subject" value="New catering inquiry — Bloom Table Co.">
+        <input type="hidden" name="Occasion" id="occasionInput">
+        <input type="hidden" name="Selected Starters" id="selectedStartersInput">
+        <input type="hidden" name="Selected Mains" id="selectedMainsInput">
+        <input type="hidden" name="Selected Desserts" id="selectedDessertsInput">
+        <input type="hidden" name="Package" id="packageInput">
+        <input type="hidden" name="Total" id="totalInput">
+        <button type="submit" class="btn" id="submitBtn">Send inquiry</button>
+      </form>
+    </div>
+    <div id="successMessage" style="display:none; max-width:400px; margin-top:20px; padding:24px; background:var(--sage); color:white; border-radius:14px;">
+      <h3 style="color:white; margin-bottom:8px;">You're all set!</h3>
+      <p>Thanks for reaching out — we've received your details and will contact you shortly to confirm.</p>
+    </div>
+    <p style="margin-top:20px; font-size:0.95rem;">
+      <span id="contactLine">Or reach us directly</span> — <strong>+91 98765 43210</strong> · <strong>hello@bloomtable.co</strong>
+    </p>
+  </section>
+
+</div>
+
+<script>
+let currentLang = 'en';
+let currentOccasion = null;
+// ----- Translations -----
+const T = {
+  occasionHeading: { en:"What are you planning?", bn:"আপনি কী পরিকল্পনা করছেন?", hi:"आप क्या आयोजन कर रहे हैं?" },
+  occWedding: { en:"Wedding", bn:"বিয়ে", hi:"शादी" },
+  occBirthday: { en:"Birthday", bn:"জন্মদিন", hi:"जन्मदिन" },
+  occFuneral: { en:"Funeral", bn:"শেষকৃত্য", hi:"अंतिम संस्कार" },
+  navCta: { en:"Get a quote", bn:"মূল্য জানুন", hi:"कोटेशन पाएं" },
+  heroSub: { en:"Seasonal menus, warm service, catering built around your day.", bn:"ঋতুভিত্তিক মেনু, আন্তরিক সেবা, আপনার দিনের জন্য সাজানো ক্যাটারিং।", hi:"मौसमी मेनू, आत्मीय सेवा, आपके दिन के हिसाब से बनी कैटरिंग।" },
+  heroCta: { en:"Check your date", bn:"তারিখ দেখুন", hi:"तारीख़ देखें" },
+  heroDefault: { en:"Food that feels like the best part of your celebration.", bn:"এমন খাবার যা আপনার অনুষ্ঠানের সেরা অংশ মনে হবে।", hi:"ऐसा खाना जो आपके उत्सव का सबसे अच्छा हिस्सा लगे।" },
+  heroFuneral: { en:"We are with you, with our food.", bn:"আমরা আমাদের খাবার নিয়ে আপনার পাশে আছি।", hi:"हम अपने भोजन के साथ आपके साथ हैं।" },
+  menuHeading: { en:"Build your menu", bn:"আপনার মেনু বানান", hi:"अपना मेनू बनाएं" },
+  startersHeading: { en:"Starters", bn:"স্টার্টার", hi:"स्टार्टर" },
+  mainsHeading: { en:"Main Course", bn:"মূল খাবার", hi:"मुख्य व्यंजन" },
+  dessertHeading: { en:"Dessert", bn:"ডেজার্ট", hi:"मिठाई" },
+  totalLabel: { en:"Total", bn:"মোট", hi:"कुल" },
+  packagesHeading: { en:"Packages", bn:"প্যাকেজ", hi:"पैकेज" },
+  tapPkgHint: { en:"Tap a package to choose it.", bn:"বেছে নিতে একটি প্যাকেজে ট্যাপ করুন।", hi:"चुनने के लिए किसी पैकेज पर टैप करें।" },
+  pkgEssentialName: { en:"Essential", bn:"বেসিক", hi:"बेसिक" },
+  pkgEssentialDesc: { en:"Self-serve food, one main dish", bn:"নিজে বেড়ে নেওয়া খাবার, একটি প্রধান পদ", hi:"स्वयं परोसें, एक मुख्य व्यंजन" },
+  pkgSignatureName: { en:"Signature", bn:"সিগনেচার", hi:"सिग्नेचर" },
+  pkgSignatureDesc: { en:"Served at the table, two main dishes", bn:"টেবিলে পরিবেশিত, দুটি প্রধান পদ", hi:"टेबल पर परोसा गया, दो मुख्य व्यंजन" },
+  pkgBespokeName: { en:"Bespoke", bn:"বিশেষ", hi:"विशेष" },
+  pkgBespokeDesc: { en:"Full menu made just for your event", bn:"শুধু আপনার অনুষ্ঠানের জন্য তৈরি সম্পূর্ণ মেনু", hi:"सिर्फ़ आपके आयोजन के लिए बना पूरा मेनू" },
+  perGuest: { en:"/guest", bn:"/জন", hi:"/अतिथि" },
+  customLabel: { en:"Custom", bn:"কাস্টম", hi:"कस्टम" },
+  contactHeading: { en:"Check your date", bn:"তারিখ দেখুন", hi:"तारीख़ देखें" },
+  namePh: { en:"Your name", bn:"আপনার নাম", hi:"आपका नाम" },
+  eventPh: { en:"Tell us about your event", bn:"আপনার অনুষ্ঠান সম্পর্কে বলুন", hi:"अपने आयोजन के बारे में बताएं" },
+  submitBtn: { en:"Send inquiry", bn:"পাঠান", hi:"भेजें" },
+  contactLine: { en:"Or reach us directly", bn:"অথবা সরাসরি যোগাযোগ করুন", hi:"या सीधे संपर्क करें" }
+};
+
+function applyLanguage(lang){
+  currentLang = lang;
+  document.getElementById('occasionHeading').textContent = T.occasionHeading[lang];
+  document.getElementById('occBtnWedding').textContent = T.occWedding[lang];
+  document.getElementById('occBtnBirthday').textContent = T.occBirthday[lang];
+  document.getElementById('occBtnFuneral').textContent = T.occFuneral[lang];
+  document.getElementById('navCta').textContent = T.navCta[lang];
+  document.getElementById('heroSub').textContent = T.heroSub[lang];
+  document.getElementById('heroCta').textContent = T.heroCta[lang];
+  document.getElementById('menuHeading').textContent = T.menuHeading[lang];
+  document.getElementById('startersHeading').textContent = T.startersHeading[lang];
+  document.getElementById('mainsHeading').textContent = T.mainsHeading[lang];
+  document.getElementById('dessertHeading').textContent = T.dessertHeading[lang];
+  document.getElementById('totalLabel').textContent = T.totalLabel[lang];
+  document.getElementById('packagesHeading').textContent = T.packagesHeading[lang];
+  document.getElementById('tapPkgHint').textContent = T.tapPkgHint[lang];
+  document.getElementById('pkgEssentialName').textContent = T.pkgEssentialName[lang];
+  document.getElementById('pkgEssentialDesc').textContent = T.pkgEssentialDesc[lang];
+  document.getElementById('pkgSignatureName').textContent = T.pkgSignatureName[lang];
+  document.getElementById('pkgSignatureDesc').textContent = T.pkgSignatureDesc[lang];
+  document.getElementById('pkgBespokeName').textContent = T.pkgBespokeName[lang];
+  document.getElementById('pkgBespokeDesc').textContent = T.pkgBespokeDesc[lang];
+  document.getElementById('perGuest1').textContent = T.perGuest[lang];
+  document.getElementById('perGuest2').textContent = T.perGuest[lang];
+  document.getElementById('customLabel').textContent = T.customLabel[lang];
+  document.getElementById('contactHeading').textContent = T.contactHeading[lang];
+  document.getElementById('namePlaceholderInput').placeholder = T.namePh[lang];
+  document.getElementById('eventPlaceholderInput').placeholder = T.eventPh[lang];
+  document.getElementById('submitBtn').textContent = T.submitBtn[lang];
+  document.getElementById('contactLine').textContent = T.contactLine[lang];
+
+  // headline depends on occasion too
+  const headline = document.getElementById('heroHeadline');
+  if(currentOccasion === 'funeral'){
+    headline.textContent = T.heroFuneral[lang];
+  } else {
+    headline.textContent = T.heroDefault[lang];
+  }
+}
+
+function chooseLang(lang){
+  applyLanguage(lang);
+  document.getElementById('langScreen').style.display = 'none';
+  document.getElementById('occasionScreen').style.display = 'flex';
+}
+
+function chooseOccasion(occasion){
+  currentOccasion = occasion;
+  document.getElementById('occasionScreen').style.display = 'none';
+  document.body.classList.add('theme-' + occasion);
+
+  const headline = document.getElementById('heroHeadline');
+  headline.textContent = occasion === 'funeral' ? T.heroFuneral[currentLang] : T.heroDefault[currentLang];
+
+  renderMenuForOccasion(occasion);
+
+  if(occasion === 'birthday'){
+    playIntro('birthdayIntro', 'fallLayerBirthday', ['🎉','🎊','🎈','✨'], 0, 2500);
+  } else if(occasion === 'wedding'){
+    playWeddingIntro();
+  } else {
+    document.getElementById('mainSite').style.display = 'block';
+  }
+}
+
+function playIntro(introId, layerId, emojis, pieceDelay, totalDuration){
+  const intro = document.getElementById(introId);
+  intro.style.display = 'flex';
+
+  const layer = document.getElementById(layerId);
+  for(let i = 0; i < 30; i++){
+    const piece = document.createElement('div');
+    piece.className = 'fall-piece';
+    piece.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    piece.style.left = Math.random() * 100 + '%';
+    piece.style.animationDelay = (pieceDelay/1000 + Math.random() * 0.5) + 's';
+    layer.appendChild(piece);
+  }
+
+  setTimeout(() => {
+    intro.style.display = 'none';
+    document.getElementById('mainSite').style.display = 'block';
+  }, totalDuration);
+}
+
+function playWeddingIntro(){
+  // the kalash gets "kicked" over (like a bride stepping into a new home), then rice scatters along the ground
+  const intro = document.getElementById('weddingIntro');
+  intro.style.display = 'flex';
+
+  const layer = document.getElementById('fallLayerWedding');
+
+  // create the rice grains now, positioned at the kalash's mouth, but invisible until scattered
+  const grains = [];
+  for(let i = 0; i < 40; i++){
+    const grain = document.createElement('div');
+    grain.className = 'rice-piece';
+    layer.appendChild(grain);
+    grains.push(grain);
+  }
+
+  // wait for the kick animation to land, then scatter the rice outward along the ground
+  setTimeout(() => {
+    grains.forEach(grain => {
+      const angle = (Math.random() * 140 - 70); // spread mostly sideways/forward, like a real scatter
+      const distance = 40 + Math.random() * 220;
+      const x = Math.cos(angle * Math.PI/180) * distance;
+      const y = Math.abs(Math.sin(angle * Math.PI/180)) * 18 + Math.random() * 14; // stays near the ground
+      grain.style.transform = `translate(${x}px, ${y}px) rotate(${Math.random()*360}deg)`;
+      grain.classList.add('scattered');
+    });
+  }, 950);
+
+  setTimeout(() => {
+    intro.style.display = 'none';
+    document.getElementById('mainSite').style.display = 'block';
+  }, 3200);
+}
+
+// ----- Menu builder data: different per occasion -----
+const menuData = {
+  wedding: {
+    starters: [ {name:"Paneer Tikka", price:250}, {name:"Dahi Kebab", price:270}, {name:"Chicken Seekh Kebab", price:300} ],
+    mains: [ {name:"Butter Chicken", price:450}, {name:"Mutton Rogan Josh", price:550}, {name:"Shahi Paneer", price:400} ],
+    desserts: [ {name:"Gulab Jamun", price:120}, {name:"Rasmalai", price:150}, {name:"Kesar Kheer", price:140} ]
+  },
+  birthday: {
+    starters: [ {name:"Cheese Nuggets", price:180}, {name:"Veg Spring Roll", price:200}, {name:"Mini Sliders", price:220} ],
+    mains: [ {name:"Cheesy Pasta", price:280}, {name:"Loaded Fries Bar", price:250}, {name:"Chicken Pizza Slices", price:320} ],
+    desserts: [ {name:"Chocolate Cake Slice", price:150}, {name:"Ice Cream Sundae", price:130}, {name:"Cupcakes (set of 3)", price:180} ]
+  },
+  funeral: {
+    starters: [ {name:"Plain Khichdi", price:150}, {name:"Steamed Rice & Dal", price:160}, {name:"Sabudana Khichdi", price:170} ],
+    mains: [ {name:"Simple Dal Fry", price:200}, {name:"Mixed Vegetable Curry", price:220}, {name:"Curd Rice", price:180} ],
+    desserts: [ {name:"Plain Kheer", price:100}, {name:"Fruit Bowl", price:110}, {name:"Sooji Halwa", price:100} ]
+  }
+};
+
+let selected = { starter:[], main:[], dessert:[] };
+
+function renderMenuForOccasion(occasion){
+  selected = { starter:[], main:[], dessert:[] };
+  const data = menuData[occasion];
+  renderCards("starterCards", data.starters, "starter");
+  renderCards("mainCards", data.mains, "main");
+  renderCards("dessertCards", data.desserts, "dessert");
+  updateTotal();
+}
+
+function renderCards(containerId, items, category){
+  const container = document.getElementById(containerId);
+  container.innerHTML = "";
+  items.forEach((item, index) => {
+    const card = document.createElement("div");
+    card.className = "menu-card";
+    card.innerHTML = `<strong>${item.name}</strong><p>₹${item.price}</p>`;
+    card.onclick = () => selectCard(category, index, card, containerId);
+    container.appendChild(card);
+  });
+}
+
+function selectCard(category, index, cardEl, containerId){
+  const list = menuData[currentOccasion][category === 'starter' ? 'starters' : category === 'main' ? 'mains' : 'desserts'];
+  const item = list[index];
+
+  const alreadyPicked = selected[category].some(i => i.name === item.name);
+
+  if(alreadyPicked){
+    selected[category] = selected[category].filter(i => i.name !== item.name);
+    cardEl.style.background = "white";
+    cardEl.style.borderColor = "#ddd";
+    cardEl.style.color = "var(--ink)";
+  } else {
+    selected[category].push(item);
+    cardEl.style.background = "var(--persimmon)";
+    cardEl.style.borderColor = "var(--persimmon)";
+    cardEl.style.color = "white";
+  }
+
+  updateTotal();
+}
+
+// ----- Package selection -----
+const packagePrices = { essential: 1200, signature: 1800, bespoke: 0 };
+let selectedPackage = null;
+
+function selectPackage(pkgId, cardEl){
+  document.querySelectorAll('.pkg-card').forEach(c => {
+    c.style.background = "white";
+    c.style.color = "var(--ink)";
+  });
+
+  if(selectedPackage === pkgId){
+    selectedPackage = null;
+  } else {
+    selectedPackage = pkgId;
+    cardEl.style.background = "var(--ink)";
+    cardEl.style.color = "white";
+  }
+
+  updateTotal();
+}
+
+function updateTotal(){
+  let total = 0;
+  total += selected.starter.reduce((sum, item) => sum + item.price, 0);
+  total += selected.main.reduce((sum, item) => sum + item.price, 0);
+  total += selected.dessert.reduce((sum, item) => sum + item.price, 0);
+  if(selectedPackage){
+    total += packagePrices[selectedPackage];
+  }
+  document.getElementById("totalPrice").textContent = total;
+
+  // keep the hidden form fields in sync so this info actually reaches the email
+  document.getElementById("occasionInput").value = currentOccasion || "";
+  document.getElementById("selectedStartersInput").value = selected.starter.map(i => i.name).join(", ") || "None";
+  document.getElementById("selectedMainsInput").value = selected.main.map(i => i.name).join(", ") || "None";
+  document.getElementById("selectedDessertsInput").value = selected.dessert.map(i => i.name).join(", ") || "None";
+  document.getElementById("packageInput").value = selectedPackage || "None";
+  document.getElementById("totalInput").value = "₹" + total;
+}
+
+// ----- Event date: only allow upcoming dates, up to 4 months from today -----
+(function(){
+  const dateInput = document.getElementById('eventDateInput');
+  const today = new Date();
+  const maxDate = new Date();
+  maxDate.setMonth(maxDate.getMonth() + 4);
+
+  const toYMD = d => d.toISOString().split('T')[0];
+
+  dateInput.min = toYMD(today);
+  dateInput.max = toYMD(maxDate);
+})();
+
+// ----- Input restrictions: name letters-only, phone digits-only, message capped at 100 words -----
+document.getElementById('namePlaceholderInput').addEventListener('input', function(e){
+  e.target.value = e.target.value.replace(/[^A-Za-z ]/g, '').slice(0, 30);
+});
+
+document.getElementById('customerPhoneInput').addEventListener('input', function(e){
+  e.target.value = e.target.value.replace(/[^0-9]/g, '').slice(0, 10);
+});
+
+document.getElementById('eventPlaceholderInput').addEventListener('input', function(e){
+  let words = e.target.value.trim().split(/\s+/).filter(Boolean);
+  if(words.length > 100){
+    e.target.value = words.slice(0, 100).join(' ');
+    words = words.slice(0, 100);
+  }
+  document.getElementById('wordCountHint').textContent = words.length + ' / 100 words';
+});
+
+// ----- Submit the form via fetch so we can show an in-page confirmation -----
+document.getElementById('inquiryForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  const form = e.target;
+  const data = new FormData(form);
+
+  fetch(form.action, {
+    method: 'POST',
+    body: data,
+    headers: { 'Accept': 'application/json' }
+  }).then(response => {
+    if(response.ok){
+      document.getElementById('contactFormWrap').style.display = 'none';
+      document.getElementById('successMessage').style.display = 'block';
+    } else {
+      alert("Something went wrong sending your inquiry — please try again.");
+    }
+  }).catch(() => {
+    alert("Something went wrong sending your inquiry — please check your connection and try again.");
+  });
+});
+</script>
+
+</body>
+</html>
